@@ -3,5 +3,5 @@
 test:
 	go test -race ./...
 
-benchmark:
+bench:
 	go test -bench=. ./...

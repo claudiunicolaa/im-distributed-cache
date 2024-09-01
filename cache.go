@@ -31,8 +31,11 @@ func (i Item) ExpireAt() int64 {
 
 // Cache is the interface that wraps the basic cache operations
 type Cache interface {
+	// Get retrieves an item from the cache
 	Get(key string) (Item, error)
+	// Set adds an item to the cache. The ttl is the time to live in seconds.
 	Set(key string, value interface{}, ttl int64) error
+	// Delete removes an item from the cache
 	Delete(key string) error
 }
 
@@ -48,7 +51,6 @@ func NewCache() Cache {
 	}
 }
 
-// Get retrieves an item from the cache
 func (c *cache) Get(key string) (Item, error) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
@@ -67,16 +69,20 @@ func (c *cache) Get(key string) (Item, error) {
 	return item, nil
 }
 
-// Set adds an item to the cache
 func (c *cache) Set(key string, value interface{}, ttl int64) error {
+	// too short ttl, do not set the item
+	if ttl < 1 {
+		return nil
+	}
+
 	c.mux.Lock()
 	defer c.mux.Unlock()
 
 	c.items[key] = NewItem(value, time.Now().Unix()+ttl)
+
 	return nil
 }
 
-// Delete removes an item from the cache
 func (c *cache) Delete(key string) error {
 	c.mux.Lock()
 	defer c.mux.Unlock()
