@@ -14,6 +14,8 @@ The aim of it is to explore:
 
 *Work in progress*
 
+*See [example/main.go](example/main.go) for usage*
+
 ### Testing
 
 ```bash
