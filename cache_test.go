@@ -1,6 +1,8 @@
 package imdistributedcache_test
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -135,5 +137,64 @@ func TestCache_Delete(t *testing.T) {
 				t.Errorf("expected data to be %v, got %v", test.expectedValue, result.Data())
 			}
 		})
+	}
+}
+
+func TestCacheConcurrency(t *testing.T) {
+	cache := imdistributedcache.NewCache()
+	var wg sync.WaitGroup
+
+	// Number of goroutines
+	const numGoroutines = 100000
+
+	// Set items concurrently
+	for i := 0; i < numGoroutines; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			key := fmt.Sprintf("key%d", i)
+			cache.Set(key, i, 10)
+		}(i)
+	}
+
+	// Wait for all Set operations to complete
+	wg.Wait()
+
+	// Get items concurrently
+	for i := 0; i < numGoroutines; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			key := fmt.Sprintf("key%d", i)
+			_, err := cache.Get(key)
+			if err != nil {
+				t.Errorf("Failed to get key %s: %v", key, err)
+			}
+		}(i)
+	}
+
+	// Wait for all Get operations to complete
+	wg.Wait()
+
+	// Delete items concurrently
+	for i := 0; i < numGoroutines; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			key := fmt.Sprintf("key%d", i)
+			cache.Delete(key)
+		}(i)
+	}
+
+	// Wait for all Delete operations to complete
+	wg.Wait()
+
+	// Verify all items are deleted
+	for i := 0; i < numGoroutines; i++ {
+		key := fmt.Sprintf("key%d", i)
+		_, err := cache.Get(key)
+		if err == nil {
+			t.Errorf("Expected key %s to be deleted", key)
+		}
 	}
 }
